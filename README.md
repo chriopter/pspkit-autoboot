@@ -34,7 +34,7 @@ arduino-cli upload -p /dev/ttyACM0 --fqbn esp32:esp32:esp32c3:CDCOnBoot=cdc .
   always, skiplogos, on
   ```
 
-**3. autoboot.sh:** relay via Home Assistant or ESPHome, set in `~/.config/pspkit-autoboot.env`.
+**3. autoboot.sh:** the relay is a module in `relay/` (Shelly plug, Home Assistant, ESPHome), picked in `~/.config/pspkit-autoboot.env`, e.g. `RELAY=shelly` and `SHELLY_URL=http://…`.
 
 ```
 ./autoboot.sh                    # power-cycle, wait for PSPLink

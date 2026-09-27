@@ -9,21 +9,17 @@
 # Clean power-off = PSPLink "poweroff", so the Memory Stick is idle before
 # the relay cuts power.
 #
-# Config: ~/.config/pspkit-autoboot.env (or $PSPKIT_ENV), one relay backend:
-#   RELAY=homeassistant
-#   HA_URL=http://homeassistant.local:8123
-#   HA_TOKEN=<long-lived access token>
-#   HA_ENTITY=switch.psp_relais
-# or
-#   RELAY=esphome             (ESPHome web_server, switch named "Relais")
-#   ESPHOME_URL=http://psp-relais.local
-#   ESPHOME_USER=... ESPHOME_PASS=...
+# Config: ~/.config/pspkit-autoboot.env (or $PSPKIT_ENV):
+#   RELAY=shelly | homeassistant | esphome   -> relay/<name>.sh
+#   plus that module's settings (see the header of its file), e.g.
+#   SHELLY_URL=http://192.168.1.50
 #
 # Env: OFF_S=15 (relay off, capacitors discharge), BOOT_MAX=90,
 #      PSPSH (default: pspsh in PATH). PSPLink's usbhostfs_pc must run.
 
 set -euo pipefail
 export LC_ALL=C
+HERE=$(cd "$(dirname "$0")" && pwd)
 
 # shellcheck source=/dev/null
 . "${PSPKIT_ENV:-$HOME/.config/pspkit-autoboot.env}"
@@ -32,28 +28,10 @@ BOOT_MAX=${BOOT_MAX:-90}
 PSPSH=${PSPSH:-$(command -v pspsh || echo "$HOME/.local/opt/pspdev/bin/pspsh")}
 USB_ID=054c:01c9   # PSPLink
 
-relay() {   # relay on|off|status
-  case "$RELAY" in
-    homeassistant)
-      local auth=(-H "Authorization: Bearer $HA_TOKEN" -H "Content-Type: application/json")
-      if [ "$1" = status ]; then
-        curl -fsS --max-time 5 "${auth[@]}" "$HA_URL/api/states/$HA_ENTITY" |
-          python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])'
-      else
-        curl -fsS --max-time 5 "${auth[@]}" -d "{\"entity_id\": \"$HA_ENTITY\"}" \
-          "$HA_URL/api/services/homeassistant/turn_$1" >/dev/null
-      fi ;;
-    esphome)
-      local c=(curl -fsS --max-time 5 --anyauth -u "$ESPHOME_USER:$ESPHOME_PASS")
-      if [ "$1" = status ]; then
-        "${c[@]}" "$ESPHOME_URL/switch/Relais" |
-          python3 -c 'import json,sys; print(json.load(sys.stdin)["state"].lower())'
-      else
-        "${c[@]}" -X POST -d '' "$ESPHOME_URL/switch/Relais/turn_$1" >/dev/null
-      fi ;;
-    *) echo "RELAY must be homeassistant or esphome" >&2; exit 2 ;;
-  esac
-}
+# The relay module named by RELAY (relay/<name>.sh) defines relay on|off|status.
+[ -f "$HERE/relay/${RELAY:-}.sh" ] || { echo "RELAY must name a file in relay/ (shelly, homeassistant, esphome)" >&2; exit 2; }
+# shellcheck source=/dev/null
+. "$HERE/relay/$RELAY.sh"
 
 usb_up()   { lsusb -d "$USB_ID" >/dev/null 2>&1; }
 shell_up() { timeout 10 "$PSPSH" -e ver 2>/dev/null | grep -q PSPLink; }
@@ -83,5 +61,5 @@ case "${1:-boot}" in
     echo "no PSPLink after ${BOOT_MAX}s" >&2; exit 1 ;;
   off)   power_off ;;
   relay) relay "${2:?on|off|status}"; [ "$2" = status ] || relay status ;;
-  *)     sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  *)     sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

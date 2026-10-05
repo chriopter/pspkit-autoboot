@@ -34,6 +34,8 @@ arduino-cli upload -p /dev/ttyACM0 --fqbn esp32:esp32:esp32c3:CDCOnBoot=cdc .
   always, skiplogos, on
   ```
 
+**XMB instead of PSPLink, once:** hold SELECT while the PSP powers on. ARK then skips `SETTINGS.TXT` for that start, the launcher with it, and the normal XMB comes up; the next start without the button is PSPLink again. (START held skips the plugins instead.)
+
 **3. autoboot.sh:** the relay is a module in `relay/` (Shelly plug, Home Assistant, ESPHome), picked in `~/.config/pspkit-autoboot.env`, e.g. `RELAY=shelly` and `SHELLY_URL=http://…`.
 
 ```

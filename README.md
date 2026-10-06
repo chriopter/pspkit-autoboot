@@ -1,4 +1,5 @@
 # pspkit-autoboot
+**Autoboot can automatically turn on and off a PSP and start [PSPDevs PSPLink](https://github.com/pspdev/psplinkusb) for a fully closed dev loop, even on hard freezes.**
 
 Unattended PSP-1000 test bench:
 
